@@ -1,15 +1,13 @@
-#!/usr/bin/env node
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import {Server} from '@modelcontextprotocol/sdk/server/index.js';
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
 import {CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError} from '@modelcontextprotocol/sdk/types.js';
 import {z} from 'zod';
-import {EKSAuthenticator, EKSClusterConfig} from './eks-auth.js';
+import {EKSAuthenticatorService} from './services/eks-auth.service.js';
+import {EKSClusterConfig} from './types/eks.js';
 
 class EKSMCPServer {
     private server: Server;
-    private eksAuth?: EKSAuthenticator;
+    private eksAuth?: EKSAuthenticatorService;
 
     constructor() {
         this.server = new Server(
@@ -28,7 +26,7 @@ class EKSMCPServer {
         this.setupHandlers();
     }
 
-    private setupHandlers(): void {
+    private setupHandlers = (): void => {
         // List available tools
         this.server.setRequestHandler(ListToolsRequestSchema, async () => {
             return {
@@ -107,7 +105,7 @@ class EKSMCPServer {
         });
 
         // Handle tool calls
-        this.server.setRequestHandler(CallToolRequestSchema, async request => {
+        this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
             try {
                 switch (request.params.name) {
                     case 'connect_to_eks':
@@ -132,9 +130,9 @@ class EKSMCPServer {
                 throw new McpError(ErrorCode.InternalError, `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
         });
-    }
+    };
 
-    private async handleConnectToEKS(args: any) {
+    private handleConnectToEKS = async (args: any) => {
         const schema = z.object({
             clusterName: z.string(),
             region: z.string(),
@@ -149,7 +147,7 @@ class EKSMCPServer {
             roleArn,
         };
 
-        this.eksAuth = new EKSAuthenticator(config);
+        this.eksAuth = new EKSAuthenticatorService(config);
 
         try {
             await this.eksAuth.authenticate();
@@ -170,9 +168,9 @@ class EKSMCPServer {
         } catch (error) {
             throw new McpError(ErrorCode.InternalError, `Failed to connect to EKS cluster: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-    }
+    };
 
-    private async handleListNamespaces() {
+    private handleListNamespaces = async () => {
         if (!this.eksAuth) {
             throw new McpError(ErrorCode.InvalidRequest, 'Not connected to any EKS cluster');
         }
@@ -181,7 +179,7 @@ class EKSMCPServer {
             const coreApi = this.eksAuth.getCoreV1Api();
             const response = await coreApi.listNamespace();
 
-            const namespaces = response.items.map(ns => ({
+            const namespaces = response.items.map((ns: any) => ({
                 name: ns.metadata?.name,
                 status: ns.status?.phase,
                 creationTimestamp: ns.metadata?.creationTimestamp,
@@ -198,9 +196,9 @@ class EKSMCPServer {
         } catch (error) {
             throw new McpError(ErrorCode.InternalError, `Failed to list namespaces: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-    }
+    };
 
-    private async handleListPods(args: any) {
+    private handleListPods = async (args: any) => {
         if (!this.eksAuth) {
             throw new McpError(ErrorCode.InvalidRequest, 'Not connected to any EKS cluster');
         }
@@ -215,12 +213,12 @@ class EKSMCPServer {
             const coreApi = this.eksAuth.getCoreV1Api();
             const response = await coreApi.listNamespacedPod({namespace});
 
-            const pods = response.items.map(pod => ({
+            const pods = response.items.map((pod: any) => ({
                 name: pod.metadata?.name,
                 namespace: pod.metadata?.namespace,
                 status: pod.status?.phase,
-                ready: pod.status?.containerStatuses?.every(cs => cs.ready) || false,
-                restarts: pod.status?.containerStatuses?.reduce((sum, cs) => sum + cs.restartCount, 0) || 0,
+                ready: pod.status?.containerStatuses?.every((cs: any) => cs.ready) || false,
+                restarts: pod.status?.containerStatuses?.reduce((sum: number, cs: any) => sum + cs.restartCount, 0) || 0,
                 age: pod.metadata?.creationTimestamp,
             }));
 
@@ -235,9 +233,9 @@ class EKSMCPServer {
         } catch (error) {
             throw new McpError(ErrorCode.InternalError, `Failed to list pods: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-    }
+    };
 
-    private async handleGetPodLogs(args: any) {
+    private handleGetPodLogs = async (args: any) => {
         if (!this.eksAuth) {
             throw new McpError(ErrorCode.InvalidRequest, 'Not connected to any EKS cluster');
         }
@@ -283,18 +281,16 @@ class EKSMCPServer {
         } catch (error) {
             throw new McpError(ErrorCode.InternalError, `Failed to get pod logs: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-    }
+    };
 
-    async run(): Promise<void> {
+    run = async (): Promise<void> => {
         const transport = new StdioServerTransport();
         await this.server.connect(transport);
-        console.error('EKS MCP server started');
-    }
+    };
 }
 
 // Start the server
 const server = new EKSMCPServer();
 server.run().catch(error => {
-    console.error('Server failed to start:', error);
     throw new Error('Server failed to start');
 });
