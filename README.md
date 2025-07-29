@@ -13,6 +13,7 @@ This MCP server enables AI assistants to interact with EKS clusters by providing
 - Node.js 18+ 
 - AWS CLI configured with appropriate credentials
 - Access to an EKS cluster
+- Helm CLI installed and available in system PATH
 
 ### Installation
 
@@ -32,44 +33,50 @@ npm install
 npm run build
 ```
 
-4. Run the server:
+### Usage
+
+Run the MCP server:
 ```bash
 node build/index.js
 ```
 
 ## Documentation
 
-- **[Architecture & Design](docs/architecture.md)** - Project structure, architecture design, and tool categories
-- **[Installation & Configuration](docs/installation.md)** - Detailed setup instructions and configuration
-- **[Usage Guide](docs/usage.md)** - How to use the MCP server and integrate with AI assistants
-- **[Development Guide](docs/development.md)** - Development setup, adding new tools, and customization
-- **[API Reference](docs/api-reference.md)** - Tool documentation and API details
+- **[Architecture & Design](docs/architecture.md)** - Project structure and design patterns
+- **[Tool Reference](docs/tools.md)** - Complete list of available tools and their usage
+- **[Installation Guide](docs/installation.md)** - Detailed setup instructions
+- **[Integration Guide](docs/integration.md)** - How to integrate with AI assistants
+- **[Development Guide](docs/development.md)** - Development setup and contributing guidelines
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+
+## Available Tools
+
+The MCP server provides 13 tools organized into four categories:
+
+- **Connection Tools**: Establish EKS cluster connections
+- **Cluster Information Tools**: Get cluster-wide information and monitoring
+- **Resource Management Tools**: Manage Kubernetes resources
+- **Helm Management Tools**: Manage Helm releases and charts
+- **System Tools**: Help and utility functions
+
+See the [Tool Reference](docs/tools.md) for complete details.
 
 ## Features
 
-- **9 Kubernetes Tools** organized into connection, cluster information, and resource management categories
-- **Structured Response System** with automatic summary generation and actionable recommendations
-- **AWS/EKS Authentication** with secure cluster connections
-- **AI Assistant Integration** for Claude Desktop and Cursor
-- **Comprehensive Help System** with detailed tool documentation
-
-## Project Scripts
-
-- `npm run build` - Build the TypeScript project
-- `npm run clean` - Clean build artifacts
+- 🔐 **Secure Authentication**: AWS/EKS authentication with IAM role support
+- 🛠️ **Comprehensive Tools**: 13 tools for cluster and resource management
+- 📊 **Structured Responses**: Rich, formatted responses with metadata and summaries
+- 🎯 **Helm Integration**: Full Helm release management capabilities
+- 🔧 **Extensible Architecture**: Easy to add new tools and functionality
+- 📚 **Help System**: Built-in help and documentation
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+See [Development Guide](docs/development.md) for contribution guidelines.
 
 ## Support
 
 For issues and questions:
 - Create an issue in the repository
-- Check the [troubleshooting guide](docs/troubleshooting.md)
-- Review the [architecture documentation](docs/architecture.md)
+- Check the [Troubleshooting](docs/troubleshooting.md) guide
+- Review the [Architecture](docs/architecture.md) documentation

@@ -1,277 +1,520 @@
-# Troubleshooting
+# Troubleshooting Guide
+
+This guide helps you resolve common issues when using the EKS MCP Server.
 
 ## Common Issues
 
 ### Authentication Errors
 
-**Symptoms:**
-- Error messages about invalid credentials
-- Permission denied errors
-- Unable to describe EKS clusters
+#### Issue: AWS credentials not configured
+**Symptoms**: Authentication failures, "credentials not found" errors
 
-**Solutions:**
+**Solutions**:
+1. **Configure AWS CLI**:
+   ```bash
+   aws configure
+   ```
 
-1. **Verify AWS credentials are properly configured:**
+2. **Set Environment Variables**:
+   ```bash
+   export AWS_ACCESS_KEY_ID=your_access_key
+   export AWS_SECRET_ACCESS_KEY=your_secret_key
+   export AWS_DEFAULT_REGION=your_region
+   ```
+
+3. **Verify Configuration**:
    ```bash
    aws sts get-caller-identity
    ```
 
-2. **Check IAM permissions for EKS access:**
-   Ensure your AWS user/role has the following permissions:
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [
-       {
-         "Effect": "Allow",
-         "Action": [
-           "eks:DescribeCluster",
-           "eks:ListClusters"
-         ],
-         "Resource": "*"
-       }
-     ]
-   }
+#### Issue: Insufficient IAM permissions
+**Symptoms**: "Access Denied" errors, "not authorized" messages
+
+**Solutions**:
+1. **Check Required Permissions**:
+   - `eks:DescribeCluster`
+   - `eks:ListClusters`
+   - `sts:GetCallerIdentity`
+
+2. **Verify IAM Policy**:
+   ```bash
+   aws iam get-user
+   aws iam list-attached-user-policies --user-name your-username
    ```
 
-3. **Ensure the cluster exists in the specified region:**
+3. **Test EKS Access**:
    ```bash
-   aws eks list-clusters --region us-west-2
-   ```
-
-4. **Check AWS CLI configuration:**
-   ```bash
-   aws configure list
+   aws eks list-clusters --region your-region
    ```
 
 ### Connection Failures
 
-**Symptoms:**
-- Unable to connect to EKS cluster
-- Timeout errors
-- Network connectivity issues
+#### Issue: Cluster not found
+**Symptoms**: "Cluster not found" errors, connection timeouts
 
-**Solutions:**
-
-1. **Verify cluster name and region:**
-   - Double-check the cluster name spelling
-   - Ensure the region matches where the cluster was created
-
-2. **Check network connectivity to EKS endpoint:**
+**Solutions**:
+1. **Verify Cluster Name**:
    ```bash
-   # Test connectivity to EKS API
-   curl -k https://your-cluster-endpoint.eks.amazonaws.com/api/v1/namespaces
+   aws eks list-clusters --region your-region
    ```
 
-3. **Ensure kubeconfig is properly generated:**
-   ```bash
-   aws eks update-kubeconfig --name your-cluster-name --region your-region
-   ```
-
-4. **Check VPC and security group settings:**
-   - Ensure your local machine can reach the EKS cluster
-   - Verify security groups allow necessary traffic
-
-### Permission Errors
-
-**Symptoms:**
-- RBAC permission errors
-- "Forbidden" responses from Kubernetes API
-- Unable to list or describe resources
-
-**Solutions:**
-
-1. **Verify RBAC permissions in the cluster:**
-   ```bash
-   kubectl auth can-i list pods --all-namespaces
-   kubectl auth can-i get nodes
-   ```
-
-2. **Check if the AWS user/role has necessary permissions:**
-   - Ensure your AWS credentials have EKS access
-   - Verify the IAM role/user is mapped to a Kubernetes user/group
-
-3. **Check cluster access configuration:**
+2. **Check Cluster Status**:
    ```bash
    aws eks describe-cluster --name your-cluster-name --region your-region
    ```
 
-4. **Verify aws-auth ConfigMap:**
+3. **Verify Region**:
+   Ensure you're using the correct AWS region where the cluster is located.
+
+#### Issue: Network connectivity problems
+**Symptoms**: Connection timeouts, "unable to reach cluster" errors
+
+**Solutions**:
+1. **Check Network Access**:
+   - Verify you can reach the EKS cluster endpoint
+   - Check firewall and security group settings
+
+2. **Test Connectivity**:
    ```bash
-   kubectl get configmap aws-auth -n kube-system -o yaml
-   ```
-
-### Resource Not Found Errors
-
-**Symptoms:**
-- Pods, services, or namespaces not found
-- "404 Not Found" errors
-
-**Solutions:**
-
-1. **Verify the resource exists:**
-   ```bash
-   kubectl get pods -n your-namespace
-   kubectl get namespaces
-   ```
-
-2. **Check namespace spelling:**
-   - Ensure namespace names are spelled correctly
-   - Use `kubectl get namespaces` to list available namespaces
-
-3. **Verify resource names:**
-   - Pod names often include random suffixes
-   - Use `kubectl get pods -n namespace` to see exact names
-
-### Performance Issues
-
-**Symptoms:**
-- Slow response times
-- Timeout errors
-- High latency
-
-**Solutions:**
-
-1. **Check cluster health:**
-   ```bash
+   aws eks update-kubeconfig --name your-cluster-name --region your-region
    kubectl get nodes
-   kubectl top nodes
    ```
 
-2. **Monitor resource usage:**
+3. **Check VPC Settings**:
+   - Ensure your network can reach the EKS cluster VPC
+   - Verify security group rules allow your IP
+
+### Permission Errors
+
+#### Issue: Kubernetes RBAC permissions
+**Symptoms**: "Forbidden" errors, "not authorized" for resources
+
+**Solutions**:
+1. **Check RBAC Configuration**:
    ```bash
-   kubectl top pods --all-namespaces
+   kubectl auth can-i list pods
+   kubectl auth can-i get nodes
    ```
 
-3. **Check network connectivity:**
-   - Verify stable internet connection
-   - Check if VPN or proxy is affecting connectivity
+2. **Verify Service Account**:
+   ```bash
+   kubectl get serviceaccount
+   kubectl get clusterrolebinding
+   ```
+
+3. **Check Namespace Access**:
+   ```bash
+   kubectl get namespaces
+   kubectl auth can-i list pods --namespace your-namespace
+   ```
+
+### Helm Tool Errors
+
+#### Issue: Helm CLI not found
+**Symptoms**: "helm command not found", "Helm CLI not available"
+
+**Solutions**:
+1. **Install Helm**:
+   ```bash
+   # macOS
+   brew install helm
+   
+   # Linux
+   curl https://get.helm.sh/helm-v3.x.x-linux-amd64.tar.gz | tar xz
+   sudo mv linux-amd64/helm /usr/local/bin/
+   
+   # Windows
+   choco install kubernetes-helm
+   ```
+
+2. **Verify Installation**:
+   ```bash
+   helm version
+   ```
+
+3. **Add to PATH**:
+   Ensure Helm is in your system PATH.
+
+#### Issue: Helm access denied
+**Symptoms**: "not authorized" for Helm operations, "forbidden" errors
+
+**Solutions**:
+1. **Test Helm Access**:
+   ```bash
+   helm list --all-namespaces
+   ```
+
+2. **Check RBAC for Helm**:
+   ```bash
+   kubectl auth can-i list secrets --namespace kube-system
+   kubectl auth can-i get configmaps --namespace kube-system
+   ```
+
+3. **Verify Tiller Permissions** (if using Helm 2):
+   ```bash
+   kubectl get serviceaccount -n kube-system | grep tiller
+   ```
+
+#### Issue: Helm releases not found
+**Symptoms**: "release not found", empty release lists
+
+**Solutions**:
+1. **Check Release Namespace**:
+   ```bash
+   helm list --all-namespaces
+   ```
+
+2. **Verify Release Names**:
+   ```bash
+   helm list -n your-namespace
+   ```
+
+3. **Check Release Status**:
+   ```bash
+   helm status your-release-name -n your-namespace
+   ```
+
+### Tool Execution Errors
+
+#### Issue: Tools not available
+**Symptoms**: "Unknown tool" errors, missing tools in help
+
+**Solutions**:
+1. **Check Server Status**:
+   - Verify MCP server is running
+   - Check server connection in AI assistant
+
+2. **Restart AI Assistant**:
+   - Close and reopen Claude Desktop or Cursor
+   - Reconnect to the MCP server
+
+3. **Verify Tool Registration**:
+   ```bash
+   node test/test-integration.js
+   ```
+
+#### Issue: Tool execution failures
+**Symptoms**: Tool execution errors, unexpected responses
+
+**Solutions**:
+1. **Check Connection**:
+   - Ensure you're connected to an EKS cluster
+   - Use `connect_to_eks` first
+
+2. **Verify Parameters**:
+   - Check tool parameters and requirements
+   - Use the `help` tool for guidance
+
+3. **Test Manually**:
+   ```bash
+   node test/test-helm-tools.js
+   ```
 
 ## Debug Mode
 
-Enable debug logging to get more detailed information about issues:
+### Enable Debug Logging
+
+Set environment variables for detailed logging:
 
 ```bash
 export DEBUG=eks-mcp-server:*
+export NODE_ENV=development
 node build/index.js
 ```
 
-### Debug Environment Variables
+### Debug Information
 
-- `DEBUG=eks-mcp-server:*`: Enable all debug logging
-- `DEBUG=eks-mcp-server:auth`: Enable authentication debug logging
-- `DEBUG=eks-mcp-server:tools`: Enable tools debug logging
-- `DEBUG=eks-mcp-server:response`: Enable response formatting debug logging
+Debug mode provides:
+- Detailed error messages
+- Request/response logging
+- Authentication flow details
+- Tool execution traces
 
-## Log Analysis
+### Common Debug Output
 
-### Common Log Patterns
+#### Authentication Debug
+```
+[DEBUG] EKS authentication started
+[DEBUG] AWS credentials loaded
+[DEBUG] Cluster info retrieved
+[DEBUG] Kubeconfig updated
+[DEBUG] Connection test successful
+```
 
-1. **Authentication Issues:**
+#### Tool Execution Debug
+```
+[DEBUG] Tool execution started: list_helm_releases
+[DEBUG] Parameters: { namespace: 'production' }
+[DEBUG] Helm client initialized
+[DEBUG] Helm command executed: helm list --output json --namespace production
+[DEBUG] Response received
+```
+
+## Testing and Verification
+
+### Connection Testing
+
+Test your EKS connection:
+
+```bash
+node test/test-connection.js
+```
+
+### Helm Tools Testing
+
+Test Helm functionality:
+
+```bash
+node test/test-helm-tools.js
+```
+
+### Integration Testing
+
+Test all tools together:
+
+```bash
+node test/test-integration.js
+```
+
+### Manual Testing
+
+Test individual components:
+
+```bash
+# Test AWS credentials
+aws sts get-caller-identity
+
+# Test EKS access
+aws eks list-clusters --region your-region
+
+# Test Kubernetes access
+kubectl get nodes
+
+# Test Helm access
+helm list --all-namespaces
+```
+
+## Performance Issues
+
+### Slow Response Times
+
+**Symptoms**: Long tool execution times, timeouts
+
+**Solutions**:
+1. **Check Network Latency**:
+   - Test connection to EKS cluster
+   - Verify network performance
+
+2. **Optimize Queries**:
+   - Use specific namespaces
+   - Limit result sets
+   - Use appropriate filters
+
+3. **Monitor Resources**:
+   - Check CPU and memory usage
+   - Monitor network bandwidth
+
+### Memory Issues
+
+**Symptoms**: High memory usage, out of memory errors
+
+**Solutions**:
+1. **Check Memory Usage**:
+   ```bash
+   ps aux | grep node
    ```
-   [ERROR] AWS authentication failed: Invalid credentials
-   [DEBUG] Attempting to authenticate with AWS...
-   ```
 
-2. **Connection Issues:**
-   ```
-   [ERROR] Failed to connect to EKS cluster: timeout
-   [DEBUG] Attempting to connect to cluster: your-cluster-name
-   ```
+2. **Optimize Data Handling**:
+   - Process data in chunks
+   - Implement pagination
+   - Use streaming for large datasets
 
-3. **Permission Issues:**
-   ```
-   [ERROR] Permission denied: cannot list pods
-   [DEBUG] Checking RBAC permissions...
-   ```
+3. **Restart Services**:
+   - Restart the MCP server
+   - Clear any cached data
 
-### Log Locations
+## Security Issues
 
-- **Application Logs**: Output to stdout/stderr when running the server
-- **AWS CLI Logs**: Check `~/.aws/logs/` for AWS CLI debug logs
-- **Kubernetes Logs**: Use `kubectl logs` for cluster-side issues
+### Credential Exposure
 
-## Performance Optimization
+**Symptoms**: Credentials in logs, security warnings
 
-### Reducing Response Times
+**Solutions**:
+1. **Check Logs**:
+   - Review debug output for sensitive data
+   - Remove credentials from logs
 
-1. **Use specific namespaces:**
-   - Always specify namespace when possible
-   - Avoid listing all namespaces unless necessary
+2. **Use Environment Variables**:
+   - Store credentials in environment variables
+   - Use AWS profiles instead of hardcoded credentials
 
-2. **Limit log retrieval:**
-   - Use the `tail` parameter to limit log lines
-   - Specify container name for multi-container pods
+3. **Audit Access**:
+   - Monitor AWS CloudTrail logs
+   - Review Kubernetes audit logs
 
-3. **Cache cluster information:**
-   - Reuse connections when possible
-   - Avoid repeated authentication calls
+### Access Control Issues
 
-### Resource Usage Optimization
+**Symptoms**: Unauthorized access, permission escalation
 
-1. **Monitor memory usage:**
-   - Large log responses can consume significant memory
-   - Consider pagination for large result sets
+**Solutions**:
+1. **Review IAM Policies**:
+   - Use least-privilege access
+   - Regularly audit permissions
 
-2. **Optimize network calls:**
-   - Batch operations when possible
-   - Use efficient Kubernetes API calls
+2. **Check RBAC**:
+   - Review Kubernetes RBAC policies
+   - Verify namespace access controls
+
+3. **Monitor Access**:
+   - Enable audit logging
+   - Monitor access patterns
+
+## Environment-Specific Issues
+
+### macOS Issues
+
+#### Issue: Permission denied errors
+**Solutions**:
+```bash
+# Fix file permissions
+chmod +x build/index.js
+
+# Check Node.js installation
+which node
+node --version
+```
+
+#### Issue: Homebrew conflicts
+**Solutions**:
+```bash
+# Update Homebrew
+brew update
+
+# Reinstall tools
+brew reinstall node helm
+```
+
+### Linux Issues
+
+#### Issue: Missing dependencies
+**Solutions**:
+```bash
+# Install required packages
+sudo apt-get update
+sudo apt-get install curl wget git
+
+# Install Node.js
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+#### Issue: PATH issues
+**Solutions**:
+```bash
+# Add to PATH
+export PATH=$PATH:/usr/local/bin
+
+# Make permanent
+echo 'export PATH=$PATH:/usr/local/bin' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Windows Issues
+
+#### Issue: PowerShell execution policy
+**Solutions**:
+```powershell
+# Set execution policy
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Install tools
+choco install nodejs kubernetes-helm
+```
+
+#### Issue: Path issues
+**Solutions**:
+1. Add Node.js and Helm to system PATH
+2. Restart command prompt after installation
+3. Verify tools are accessible
 
 ## Getting Help
 
-### Before Seeking Help
+### Before Asking for Help
 
-1. **Collect Information:**
-   - Error messages and stack traces
-   - Debug logs with `DEBUG=eks-mcp-server:*`
-   - AWS CLI version and configuration
-   - Kubernetes cluster version
-
-2. **Reproduce the Issue:**
-   - Document exact steps to reproduce
-   - Note any recent changes to configuration
-   - Test with minimal parameters
-
-3. **Check Documentation:**
+1. **Check Documentation**:
    - Review this troubleshooting guide
-   - Check the [API Reference](api-reference.md)
-   - Review [Installation Guide](installation.md)
+   - Check the [Installation Guide](installation.md)
+   - Read the [Tool Reference](tools.md)
 
-### Support Channels
+2. **Run Tests**:
+   ```bash
+   node test/test-integration.js
+   ```
 
-1. **GitHub Issues:**
-   - Create an issue with detailed information
-   - Include logs and error messages
-   - Provide reproduction steps
+3. **Enable Debug Mode**:
+   ```bash
+   export DEBUG=eks-mcp-server:*
+   node build/index.js
+   ```
 
-2. **Community Support:**
-   - Check existing issues for similar problems
-   - Review pull requests for solutions
+4. **Gather Information**:
+   - Error messages
+   - Debug output
+   - System information
+   - Steps to reproduce
 
-3. **Documentation:**
-   - Review [Architecture Documentation](architecture.md)
-   - Check [Development Guide](development.md) for customization issues
+### Creating Issues
+
+When creating an issue, include:
+
+1. **Environment Information**:
+   - Operating system
+   - Node.js version
+   - AWS CLI version
+   - Helm version
+
+2. **Error Details**:
+   - Complete error message
+   - Stack trace
+   - Debug output
+
+3. **Steps to Reproduce**:
+   - Exact commands used
+   - Expected vs actual behavior
+   - Screenshots if applicable
+
+4. **Configuration**:
+   - AWS configuration (without credentials)
+   - EKS cluster details
+   - MCP server configuration
+
+### Community Support
+
+- **GitHub Issues**: Create detailed issues with all information
+- **Documentation**: Check existing documentation and guides
+- **Examples**: Look at test files for usage examples
+- **Search**: Search existing issues for similar problems
 
 ## Prevention
 
 ### Best Practices
 
-1. **Regular Testing:**
-   - Test connections regularly
+1. **Regular Updates**:
+   - Keep Node.js updated
+   - Update AWS CLI regularly
+   - Update Helm to latest version
+
+2. **Monitoring**:
    - Monitor cluster health
-   - Validate permissions periodically
+   - Check tool performance
+   - Review error logs
 
-2. **Configuration Management:**
-   - Use version control for configurations
-   - Document environment-specific settings
-   - Regular backup of important configurations
+3. **Testing**:
+   - Test changes in development
+   - Run integration tests regularly
+   - Verify functionality after updates
 
-3. **Monitoring:**
-   - Set up alerts for authentication failures
-   - Monitor API rate limits
-   - Track performance metrics
-
-4. **Security:**
-   - Rotate AWS credentials regularly
-   - Use least-privilege access
-   - Audit permissions periodically 
+4. **Documentation**:
+   - Keep configuration documented
+   - Record customizations
+   - Maintain runbooks for common issues 

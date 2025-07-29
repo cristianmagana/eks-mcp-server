@@ -21,6 +21,7 @@
     "aws-sdk": "^2.1691.0",
     "gts": "^5.3.0",
     "loglevel": "^1.9.1",
+    "node-helm": "^0.1.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

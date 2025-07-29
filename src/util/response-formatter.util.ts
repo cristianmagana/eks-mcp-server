@@ -189,6 +189,68 @@ export class ResponseFormatter {
                     'Use specific tool help for detailed information',
                     'Explore different tool categories for your needs'
                 ]
+            },
+            'list_helm_releases': {
+                title: 'Helm Releases Overview',
+                description: `Found ${data.totalReleases} Helm releases`,
+                keyMetrics: {
+                    totalReleases: data.totalReleases,
+                    byStatus: data.summary?.byStatus || {},
+                    byNamespace: data.summary?.byNamespace || {}
+                },
+                recommendations: [
+                    'Review release status for any failed or pending releases',
+                    'Check namespace distribution for resource organization',
+                    'Use get_helm_release for detailed release information'
+                ]
+            },
+            'get_helm_release': {
+                title: 'Helm Release Details',
+                description: `Detailed information for release: ${data.releaseName}`,
+                keyMetrics: {
+                    releaseName: data.releaseName,
+                    namespace: data.namespace,
+                    status: data.status?.status,
+                    resourceCount: data.summary?.resourceCount || 0,
+                    hookCount: data.summary?.hookCount || 0
+                },
+                recommendations: [
+                    data.status?.status !== 'deployed' ? `Release is in ${data.status?.status} state - investigate` : 'Release is deployed successfully',
+                    'Review resource status and hook execution',
+                    'Use get_helm_release_status for detailed status information'
+                ]
+            },
+            'get_helm_release_status': {
+                title: 'Helm Release Status',
+                description: `Status for release: ${data.releaseName}`,
+                keyMetrics: {
+                    releaseName: data.releaseName,
+                    namespace: data.namespace,
+                    status: data.status,
+                    healthyResources: data.summary?.healthyResources || 0,
+                    failedResources: data.summary?.failedResources || 0
+                },
+                recommendations: [
+                    data.failedResources > 0 ? `Investigate ${data.failedResources} failed resources` : 'All resources are healthy',
+                    'Review hook execution status if applicable',
+                    'Use get_helm_release_history for deployment timeline'
+                ]
+            },
+            'get_helm_release_history': {
+                title: 'Helm Release History',
+                description: `Revision history for release: ${data.releaseName}`,
+                keyMetrics: {
+                    releaseName: data.releaseName,
+                    namespace: data.namespace,
+                    totalRevisions: data.totalRevisions,
+                    currentRevision: data.currentRevision,
+                    deployedRevisions: data.summary?.deployedRevisions || 0
+                },
+                recommendations: [
+                    data.summary?.failedRevisions > 0 ? `Review ${data.summary.failedRevisions} failed revisions` : 'All revisions are successful',
+                    'Monitor deployment frequency and patterns',
+                    'Use get_helm_release for current release details'
+                ]
             }
         };
 
@@ -280,7 +342,35 @@ export class ResponseFormatter {
 - Parameter details and examples
 - Usage instructions and best practices
 - Recommendations for tool selection
-- Clear navigation guidance`
+- Clear navigation guidance`,
+
+            'list_helm_releases': `You are listing Helm releases. Return a structured response with:
+- Total number of releases found
+- Release details including name, namespace, status, and version
+- Summary by status and namespace
+- Recommendations for release management
+- Key metrics and health indicators`,
+
+            'get_helm_release': `You are getting detailed Helm release information. Return a structured response with:
+- Release metadata and status information
+- Resource details and configurations
+- Values and manifest information
+- Recommendations for release management
+- Key metrics and health indicators`,
+
+            'get_helm_release_status': `You are checking Helm release status. Return a structured response with:
+- Release status and version information
+- Resource health and status details
+- Hook information and execution status
+- Recommendations for troubleshooting
+- Key metrics and health indicators`,
+
+            'get_helm_release_history': `You are retrieving Helm release history. Return a structured response with:
+- Revision history and deployment timeline
+- Status of each revision
+- Deployment patterns and frequency
+- Recommendations for release management
+- Key metrics and deployment insights`
         };
 
         return prompts[toolName] || `You are executing the ${toolName} tool. Return a structured response with:
