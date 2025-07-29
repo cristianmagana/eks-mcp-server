@@ -532,6 +532,7 @@ export class KubernetesToolsService {
             connection: tools.filter(t => t.name === 'connect_to_eks'),
             cluster: tools.filter(t => ['get_cluster_info', 'get_resource_usage', 'list_namespaces'].includes(t.name)),
             resource: tools.filter(t => ['list_pods', 'describe_pod', 'list_services', 'list_deployments', 'get_pod_logs'].includes(t.name)),
+            helm: tools.filter(t => ['list_helm_releases', 'get_helm_release', 'get_helm_release_status', 'get_helm_release_history'].includes(t.name)),
             system: tools.filter(t => t.name === 'help')
         };
 
@@ -560,6 +561,14 @@ export class KubernetesToolsService {
                     name: 'Resource Management Tools',
                     description: 'Tools for managing and monitoring Kubernetes resources',
                     tools: categories.resource.map(t => ({
+                        name: t.name,
+                        description: t.description
+                    }))
+                },
+                helm: {
+                    name: 'Helm Management Tools',
+                    description: 'Tools for managing Helm releases and charts',
+                    tools: categories.helm.map(t => ({
                         name: t.name,
                         description: t.description
                     }))
@@ -600,6 +609,11 @@ export class KubernetesToolsService {
                 name: 'Resource Management Tools',
                 description: 'Tools for managing, monitoring, and debugging Kubernetes resources',
                 tools: ['list_pods', 'describe_pod', 'list_services', 'list_deployments', 'get_pod_logs']
+            },
+            'helm': {
+                name: 'Helm Management Tools',
+                description: 'Tools for managing Helm releases, charts, and deployments',
+                tools: ['list_helm_releases', 'get_helm_release', 'get_helm_release_status', 'get_helm_release_history']
             }
         };
 
@@ -689,6 +703,23 @@ export class KubernetesToolsService {
             'get_pod_logs': [
                 'get_pod_logs with podName="web-app-123"',
                 'get_pod_logs with podName="api-server", namespace="backend", container="app", and tailLines=50'
+            ],
+            'list_helm_releases': [
+                'list_helm_releases',
+                'list_helm_releases with namespace="production"',
+                'list_helm_releases with status="deployed"'
+            ],
+            'get_helm_release': [
+                'get_helm_release with releaseName="my-app"',
+                'get_helm_release with releaseName="database" and namespace="backend"'
+            ],
+            'get_helm_release_status': [
+                'get_helm_release_status with releaseName="my-app"',
+                'get_helm_release_status with releaseName="database" and namespace="backend"'
+            ],
+            'get_helm_release_history': [
+                'get_helm_release_history with releaseName="my-app"',
+                'get_helm_release_history with releaseName="database", namespace="backend", and max=5'
             ],
             'help': [
                 'help',
